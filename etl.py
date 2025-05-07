@@ -7,6 +7,7 @@ from airflow import DAG
 from datetime import timedelta, datetime
 from airflow.operators.python import PythonOperator
 
+# function to fetch the api keys
 def connection():
     with open('key.yaml', 'r') as file:
         config = yaml.safe_load(file)
@@ -14,6 +15,7 @@ def connection():
         key = config.get('key')
     return key
 
+#function to extract data using the latitude and longitude of the city Abuja
 def get_data(ti):
   lati = 9.072264
   longi = 7.491302
@@ -24,29 +26,33 @@ def get_data(ti):
   status = response.status_code
   print(status)
   data = response.json()
-  ti.xcom_push(key='extracted_data', value=data)
+  ti.xcom_push(key='extracted_data', value=data) # pushing the data to xcoms
   return data
 
+# data transformation function
 def transformation(ti):
   weather_data = []
-  raw_data = ti.xcom_pull(key='extracted_data', task_ids='get_data')
+  raw_data = ti.xcom_pull(key='extracted_data', task_ids='get_data') # pulling data from the extraction task
   country = raw_data['sys']['country']
   latitude = raw_data['coord']['lat']
   longitude = raw_data['coord']['lon']
   city_name = raw_data['name']
   time_zone = raw_data['timezone']
 
-
+  # transforming datetime to a datetime object
   date = datetime.fromtimestamp(raw_data['dt']).date().strftime("%Y-%m-%d %H:%M:%S")
   time_of_calculation = datetime.fromtimestamp(raw_data['dt']).time().strftime("%Y-%m-%d %H:%M:%S")
   sunrise_time = datetime.fromtimestamp(raw_data['sys']['sunrise']).time().strftime("%Y-%m-%d %H:%M:%S")
   sunset_time = datetime.fromtimestamp(raw_data['sys']['sunset']).time().strftime("%Y-%m-%d %H:%M:%S")
 
+
   cloud = raw_data['clouds']
+  #transforming temperature from degree kelvin to degree celcuis 
   temperature_in_degree = raw_data['main']['temp']-273.15
   min_temp_in_degree =  raw_data['main']['temp_min']-273.15
   max_temp_in_degree = raw_data['main']['temp_max']-273.15
 
+  #wind speed data
   wind_speed = raw_data['wind']['speed']
   wind_degree = raw_data['wind']['deg']
   wind_gust = raw_data['wind']['gust']
@@ -73,7 +79,7 @@ def transformation(ti):
   print(weather_data)
   return weather_data
 
-
+# airflow default arguements
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -85,18 +91,21 @@ default_args = {
     'retry_delay': timedelta(minutes=2)
 }
 
+#airflow dag
 dag = DAG(
     'energy_etl',
     default_args =default_args,
     description='energy weather etl data pipeline'
 )
 
-
+# extraction task
 extraction = PythonOperator(
     task_id='get_data',
     python_callable=get_data,
     dag=dag,
 )
+
+#transformation task
 transformation = PythonOperator(
     task_id='data_transformation',
     python_callable=transformation,
