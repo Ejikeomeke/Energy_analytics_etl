@@ -1,4 +1,4 @@
-key.yaml
+/.env
 airflow_etl
 etl.ipynb
 /.idea
