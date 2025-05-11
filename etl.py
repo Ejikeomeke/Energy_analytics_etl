@@ -8,25 +8,22 @@ from dotenv import load_dotenv
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from airflow.operators.python import PythonOperator
 
-
-# to load the python environmnet variables
 load_dotenv()
 
-#function to extract data using the latitude and longitude of the city Abuja
 def get_data(ti):
   lati = 9.072264
   longi = 7.491302
-  API_key = os.getenv("WEATHER_API") # passing the api keys from env file
+  API_key = os.getenv("WEATHER_API")
 
   source = f"https://api.openweathermap.org/data/2.5/weather?lat={lati}&lon={longi}&appid={API_key}"
   response = requests.get(url=source)
   status = response.status_code
   print(status)
   data = response.json()
-  ti.xcom_push(key='extracted_data', value=data) # pushing the data to xcoms
+  ti.xcom_push(key='extracted_data', value=data)
   return data
 
-# data transformation function
+
 def transformation(ti):
   weather_data = []
   raw_data = ti.xcom_pull(key='extracted_data', task_ids='get_data')
@@ -36,19 +33,17 @@ def transformation(ti):
   city_name = raw_data['name']
   time_zone = raw_data['timezone']
 
-# transforming datetime to a datetime object
+ 
   date = datetime.fromtimestamp(raw_data['dt']).date().strftime("%Y-%m-%d %H:%M:%S")
   time_of_calculation = datetime.fromtimestamp(raw_data['dt']).time().strftime("%Y-%m-%d %H:%M:%S")
   sunrise_time = datetime.fromtimestamp(raw_data['sys']['sunrise']).time().strftime("%Y-%m-%d %H:%M:%S")
   sunset_time = datetime.fromtimestamp(raw_data['sys']['sunset']).time().strftime("%Y-%m-%d %H:%M:%S")
 
-  cloud = raw_data['clouds'] 
-  #transforming temperature from degree kelvin to degree celcuis 
+  cloud = raw_data['clouds']
   temperature_in_degree = raw_data['main']['temp']-273.15
   min_temp_in_degree =  raw_data['main']['temp_min']-273.15
   max_temp_in_degree = raw_data['main']['temp_max']-273.15
 
-  #wind speed data
   wind_speed = raw_data['wind']['speed']
   wind_degree = raw_data['wind']['deg']
   wind_gust = raw_data['wind']['gust']
@@ -77,9 +72,18 @@ def transformation(ti):
   return transformed_data
 
 
+def stage_data(ti):
+  extract = ti.xcom_pull(key='transformed_data', task_ids='data_transformation')
+  extracted = pd.DataFrame(extract)
+  extracted_df=pd.DataFrame(extracted)
+  existing_csv=pd.read_csv('weather.csv')
+  existing_df=pd.DataFrame(existing_csv)
+  df = pd.concat([existing_df, extracted_df], ignore_index=True)
+  df.to_csv('weather.csv', index=False)
+
 def load_data(ti):
-  weather_data = ti.xcom_pull(key='transformed_data', task_ids='data_transformation')
-  df = pd.Series(weather_data)
+  weather_data = pd.read_csv('weather.csv')
+  df = pd.DataFrame(weather_data)
   connection_str = os.getenv("CONTAINER_STRING")
   container_name = os.getenv("CONTAINER_NAME")
     
@@ -97,7 +101,7 @@ def load_data(ti):
     
 
 
-# airflow default arguements
+
 default_args = {
     'owner': 'airflow',
     'depends_on_past': False,
@@ -109,7 +113,6 @@ default_args = {
     'retry_delay': timedelta(minutes=2)
 }
 
-#airflow dag
 dag = DAG(
     'weather_energy_etl',
     default_args =default_args,
@@ -117,22 +120,24 @@ dag = DAG(
 )
 
 
-# extraction task
 extraction = PythonOperator(
     task_id='get_data',
     python_callable=get_data,
     dag=dag,
 )
-
-
-#transformation task
 transformation = PythonOperator(
     task_id='data_transformation',
     python_callable=transformation,
     dag=dag,
 )
 
-#loading data to Azure Storage Blob
+staging = PythonOperator(
+  task_id='stage_data',
+  python_callable=stage_data,
+  dag=dag,
+)
+
+
 loading = PythonOperator(
     task_id='load_data',
     python_callable=load_data,
@@ -140,4 +145,4 @@ loading = PythonOperator(
 )
 
 
-extraction >> transformation >> loading
+extraction >> transformation >> staging >> loading
