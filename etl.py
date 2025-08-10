@@ -41,16 +41,12 @@ def transformation(ti):
   longitude = raw_data['coord']['lon']
   city_name = raw_data['name']
   time_zone = raw_data['timezone']
-
-  # transforming datetime to a datetime object
-  date = datetime.fromtimestamp(raw_data['dt']).date().strftime("%Y-%m-%d %H:%M:%S")
+  date = datetime.fromtimestamp(raw_data['dt']).date().strftime("%Y-%m-%d %H:%M:%S")# transforming datetime to datetime object
   time_of_calculation = datetime.fromtimestamp(raw_data['dt']).time().strftime("%Y-%m-%d %H:%M:%S")
   sunrise_time = datetime.fromtimestamp(raw_data['sys']['sunrise']).time().strftime("%Y-%m-%d %H:%M:%S")
   sunset_time = datetime.fromtimestamp(raw_data['sys']['sunset']).time().strftime("%Y-%m-%d %H:%M:%S")
-
   cloud = raw_data['clouds']
-    #transforming temperature from degree kelvin to degree celcuis 
-  temperature_in_degree = raw_data['main']['temp']-273.15
+  temperature_in_degree = raw_data['main']['temp']-273.15   #transforming temperature from degree kelvin to degree celcuis 
   min_temp_in_degree =  raw_data['main']['temp_min']-273.15
   max_temp_in_degree = raw_data['main']['temp_max']-273.15
 
@@ -82,7 +78,7 @@ def transformation(ti):
   logger.info(f"Transformed {len(weather_data)} record of data, transformed successfully")
   return transformed_data
 
-#staging data to combine the extracted data to existing on-prem data
+#function to merge transformed data with existing on-prem data
 def stage_data(ti):
   extract = ti.xcom_pull(key='transformed_data', task_ids='data_transformation')
   extracted = pd.DataFrame(extract)
@@ -94,7 +90,7 @@ def stage_data(ti):
   logger.info('Data staged succesfully!!')
   
 
-#loading the data to Azure Storage Blob
+#function to load data to Azure Storage Blob
 def load_data(ti):
   weather_data = pd.read_csv(r'/home/omeke/airflow/dags/weather.csv')
   df = pd.DataFrame(weather_data)
@@ -152,7 +148,7 @@ transformation = PythonOperator(
 )
 
 
-#airflow task3: data staging task
+#airflow task3: data merging task
 staging = PythonOperator(
   task_id='stage_data',
   python_callable=stage_data,

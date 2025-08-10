@@ -36,3 +36,8 @@ The API used for this project is https://openweathermap.org/
 ## Scripts
 The ![ETL](etl.py) script contains the airflow dag and python functions used for extraction, transformation, staging and loading data.
 All  the functions are connected with the dag by thier task ID's and data is exchanged using Xcoms
+
+
+##  Result
+
+![Airflow_DAG](airflow_dag.jpg)
