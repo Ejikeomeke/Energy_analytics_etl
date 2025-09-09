@@ -1,4 +1,4 @@
-# Weather Data ETL for Energy Application
+# Weather Data ETL for Energy Analytics
 
 This ETL project extracts weather data for energy analytics, leveraging on Apache Airflow, Python, and Azure Cloud technologies. 
 It retrieves data from a weather API, transforms the data for analytical use, and loads the processed data into Azure Cloud. 
