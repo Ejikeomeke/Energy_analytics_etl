@@ -2,18 +2,18 @@
 
 This ETL project extracts weather data for energy analytics, leveraging on Apache Airflow, Python, and Azure Cloud technologies. 
 It retrieves data from a weather API, transforms the data for analytical use, and loads the processed data into Azure Cloud. 
-The pipeline ensures efficient, scalable and reliable data processing to support energy-related insights.
+The pipeline ensures efficient, scalable and reliable data processing to support Energy Analytics and Optimization.
 
 
 ## Business Problem
 
 Grean Power Limited is a leading renewable energy provider in Abuja, Nigeria, operates a network of solar and wind mini-grid power stations. 
-To enhance operational efficiency and optimize energy distribution through proactive load management, the company requires a unified and readily accessible data of critical atmospheric metrics. 
+To enhance operational efficiency and optimize energy distribution through proactive load management, Green Power requires a unified and readily accessible data of critical atmospheric metrics. 
 This necessitates a solution to reliably collect and integrate data on wind speed, temperature, sunrise, sunset, and other relevant metrics from disparate sources. 
 
 ## Challenges
 
-The company operates a Hybrid Cloud system and required to maintain the existing infrastructure in storing and managing thier data.
+The company operates a Hybrid Cloud system and required to maintain the existing infrastructure in storing and managing data.
 This demands that every transformed data must be merged with existing on_prem dataset before loading into the data lake
 
 ## Architecture
